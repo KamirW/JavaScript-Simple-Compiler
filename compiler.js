@@ -1,3 +1,9 @@
+/**
+ * 
+ * @param {String} input 
+ * @returns tokens -> an array of objects that represent each character
+ * in the input as well as the value they hold
+ */
 function tokenizer(input) {
     const whitespace = /\s/;
     const numbers = /[0-9]/;
@@ -10,6 +16,7 @@ function tokenizer(input) {
     while(currentPos < input.length) {
         let char = input[currentPos];
 
+        // Catch specific characters 
         if(char === '(') {
             tokens.push({
                 type: 'paren',
@@ -93,13 +100,19 @@ function tokenizer(input) {
     return tokens;
 }
 
-
+/**
+ * 
+ * @param {Array} tokens 
+ * @returns AST (a tree structure made from the tokens array)
+ */
 function parser(tokens) {
     let currentPos = 0;
 
     function walk() {
+        // Track the current token in the list
         let token = tokens[currentPos];
 
+        // Parse literals first as they take no additional logic
         if(token.type === 'number') {
             currentPos++;
 
@@ -119,29 +132,36 @@ function parser(tokens) {
         }
 
         if(token.type === 'paren' && token.value === '(') {
+            // Capture the next token so we can use that value as the calling function
             token = tokens[++currentPos];
 
             let node = {
                 type: 'CallExpression',
-                name: token.value,
-                params: [],
+                name: token.value, // The calling function
+                params: [],        // Function parameters
             };
 
             token = tokens[++currentPos];
 
             while((token.type !== 'paren') || (token.type === 'paren' && token.value !== ')')) {
+                // Recursively add the parameters to the node using predefined logic
                 node.params.push(walk());
+
+                // No need to increment token as it is done before loop
                 token = tokens[currentPos];
             }
 
+            // When ")" is found, we need to increment token to add to AST
             currentPos++;
 
             return node;
         }
 
+        // In the case that our logic doesn't handle a specific condition
         throw new TypeError(token.type);
     }
 
+    // Define the general shape of the AST
     let ast = {
         type: 'Program',
         body: [],

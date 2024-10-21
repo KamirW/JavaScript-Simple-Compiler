@@ -13,7 +13,7 @@ would be converted into:
 
 Of course this applies to any code with a Lisp-like structure regardless of whether or not it is valid Lisp code.  
 For example, the following code:  
-`cry 10 5`
+`(cry 10 5)`
 
 would be converted to something like:  
 `cry(10, 5)`
