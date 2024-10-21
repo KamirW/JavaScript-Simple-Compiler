@@ -1,11 +1,12 @@
 function tokenizer(input) {
+    const whitespace = /\s/;
+    const numbers = /[0-9]/;
+    const letters = /[a-z]/i;
+
     let currentPos = 0;
     let tokens = [];
     
-    let whitespace = /\s/;
-    let numbers = /[0-9]/;
-    let letters = /[a-z]/i;
-
+    // Traverse through the input to assign tokens
     while(currentPos < input.length) {
         let char = input[currentPos];
 
@@ -85,6 +86,7 @@ function tokenizer(input) {
             continue;
         }
 
+        // Throw error when no token can be made with the given input
         throw new TypeError('Unrecognized character: ' + char);
     }
 
