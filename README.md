@@ -7,7 +7,7 @@ For example:
 
 would be converted into: 
 
-`add(2, subtract(4, 3))`
+`add(2, subtract(4, 3));`
 
 ## Limitations
 
@@ -16,4 +16,4 @@ For example, the following code:
 `(cry 10 5)`
 
 would be converted to something like:  
-`cry(10, 5)`
+`cry(10, 5);`

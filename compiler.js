@@ -103,7 +103,7 @@ function tokenizer(input) {
 /**
  * 
  * @param {Array} tokens 
- * @returns AST (a tree structure made from the tokens array)
+ * @returns Abstract Syntax Tree (AST) -> a tree structure made from the tokens array
  */
 function parser(tokens) {
     let currentPos = 0;
@@ -174,7 +174,11 @@ function parser(tokens) {
     return ast;
 }
 
-
+/**
+ * 
+ * @param {Array<Object>} ast 
+ * @param {Array<Object>} visitor -> has predetermined functions for certain types
+ */
 function traverser(ast, visitor) {
     function traverseArray(array, parent) {
         array.forEach(child => {
@@ -183,49 +187,68 @@ function traverser(ast, visitor) {
     }
 
     function traverseNode(node, parent) {
+        // Testing if the type of the node matches what we handle below
         let methods = visitor[node.type];
-
+        
+        // Testing if the method exists and if we have defined an enter method in the transformer for it
         if(methods && methods.enter) {
+            // Call the enter method we define in the transformer
             methods.enter(node, parent);
         }
 
         switch(node.type) {
             case 'Program':
+                // We need to traverse through the "body" to visit each node
                 traverseArray(node.body, node);
                 break;
             
             case 'CallExpression':
+                // We need to traverse through the "params" to visit each node
                 traverseArray(node.params, node);
                 break;
 
+            // No traversing is required for literals as they have no children
             case 'NumberLiteral':
             case 'StringLiteral':
                 break;
 
             default:
+                // If our logic doesn't handle a specific type
                 throw new TypeError(node.type);
         }
 
+        // If there is an exit function, then we call it
         if(methods && methods.exit) {
             methods.exit(node, parent);
         }
     }
 
+    // Passing null as the parent of the Program as it is the top of the tree
     traverseNode(ast, null);
 }
 
-
+/**
+ * 
+ * @param {Array<Object>} ast 
+ * @returns Abstract Syntax Tree (Ast) -> tree like structure for the language we are converting into
+ */
 function transformer(ast) {
+    // The shape of the newAst is similar to the old one
     let newAst = {
         type: 'Program',
         body: [],
     };
 
+    // Take a reference from the old AST to the newAst
+    // This allows us to easily push nodes to their parents as we are explicitly 
+    // stating that the two AST's have the same shape
     ast._context = newAst.body;
 
     traverser(ast, {
+        // First visitor method accepts Numeric Literals
         NumberLiteral: {
             enter(node, parent) {
+                // Create a new node to push to the parent context
                 parent._context.push({
                     type: 'NumberLiteral',
                     value: node.value,
@@ -233,6 +256,7 @@ function transformer(ast) {
             },
         },
 
+        // Next visitor method accepts String Literals
         StringLiteral: {
             enter(node, parent) {
                 parent._context.push({
@@ -242,8 +266,10 @@ function transformer(ast) {
             },
         },
 
+        // Next visitor accepts call expressions
         CallExpression: {
             enter(node, parent) {
+                // Create a new structure for the CallExpression for the newAST
                 let expression = {
                     type: 'CallExpression',
                     callee: {
@@ -253,8 +279,12 @@ function transformer(ast) {
                     arguments: [],
                 };
 
+                // Have the ability to push arguments from old AST node to newAST node
                 node._context = expression.arguments;
 
+                // If the parent isn't a CallExpression, then we wrap the call expression
+                // in an ExpressionStatement. This is because CallExpression are actual statements in JS
+                // so it avoids confusion
                 if(parent.type !== 'CallExpression') {
                     expression = {
                         type: 'ExpressionStatement',
@@ -262,6 +292,7 @@ function transformer(ast) {
                     };
                 }
 
+                // Include this new structure into the parent' context
                 parent._context.push(expression);
             },
         }
@@ -270,15 +301,24 @@ function transformer(ast) {
     return newAst;
 }
 
-
+/**
+ * Compresses the AST into one string using recursion
+ * @param {AST} node 
+ * @returns String of newly generated code
+ */
 function codeGenerator(node) {
     switch(node.type) {
+        // If it's a Program, we need to put all its children into the code generator
         case 'Program':
             return node.body.map(codeGenerator).join('\n');
 
+        // If it's an ExpressionStatement, we need to put its expression into 
+        // the code generator
         case 'ExpressionStatement':
             return (codeGenerator(node.expression) + ';');
 
+        // For CallExpressions, we print the callee(found in the next iter)
+        // as well as its arguments and put them between parentheses
         case 'CallExpression':
             return (
                 codeGenerator(node.callee) + '(' + 
@@ -291,6 +331,7 @@ function codeGenerator(node) {
         case 'NumberLiteral':
             return node.value;
 
+        // For strings, we just surround them in quotes
         case 'StringLiteral':
             return '"' + node.value + '"';
         
